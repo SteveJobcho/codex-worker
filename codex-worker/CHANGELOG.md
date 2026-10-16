@@ -1,5 +1,10 @@
 # Changelog
 
+## codex-worker 1.5.0 (fork)
+
+- `task --mcp <name,...>` lends Claude's local (stdio) MCP servers to a single Codex job. It reads them from the project `.mcp.json`, `~/.claude.json` and Claude Desktop's config, and injects them as a per-thread config override, so `~/.codex/config.toml` is untouched. `--thread` follow-ups keep them. `mcp-list` shows what can be lent.
+- Delegation wording is now mandatory: the skill MUST be loaded before any non-UI coding or code-investigation task, each part gets an explicit Codex-or-me decision stated to the user, and delegating is the default. The skill lists the reasons that don't count for keeping a part ("it's small", "Codex can't reach that tool").
+
 ## codex-worker 1.4.0 (fork)
 
 - The `worker` skill description is rewritten as a trigger: check it at the start of every non-UI coding task.

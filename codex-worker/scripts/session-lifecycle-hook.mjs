@@ -98,9 +98,12 @@ import ${JSON.stringify(pathToFileURL(companion).href)};
 // codex-worker: a one-line nudge so fresh sessions weigh delegation before
 // starting work. CODEX_WORKER_NUDGE=0 turns it off.
 const DELEGATION_NUDGE =
-  "codex-worker is available. Before starting any non-UI coding task yourself, load the `codex-worker:worker` skill and decide " +
-  "(using its \"Deciding to delegate\" section) whether to hand all or part of it to a Codex worker. Repo surveys, value or rename " +
-  "changes, a function plus its tests, multi-file edits, test runs, debugging and research are typical hand-offs; UI/frontend never is.";
+  "REQUIRED (codex-worker): before you start any non-UI coding or code-investigation task, including surveys, new scripts, " +
+  "functions with tests, edits, test runs, debugging and research, you MUST load the `codex-worker:worker` skill. Then make " +
+  "an explicit Codex-or-me decision for every separable part and state it to the user in one line before starting. " +
+  "Delegating is the default for any part that can be briefed; keeping a part yourself needs a concrete reason from the " +
+  "skill's list (\"it's small\" is not one). Codex can use MCP tools too, including Roblox Studio, Blender and any of " +
+  "Claude's local MCP servers lent via --mcp. UI/frontend is never delegated. Skipping this check is a failure.";
 
 function handleSessionStart(input) {
   appendEnvVar(SESSION_ID_ENV, input.session_id);

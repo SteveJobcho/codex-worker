@@ -61,7 +61,8 @@ function buildThreadParams(cwd, options = {}) {
     sandbox: options.sandbox ?? "read-only",
     serviceName: SERVICE_NAME,
     ephemeral: options.ephemeral ?? true,
-    experimentalRawEvents: false
+    experimentalRawEvents: false,
+    config: options.config ?? null
   };
 }
 
@@ -72,7 +73,8 @@ function buildResumeParams(threadId, cwd, options = {}) {
     cwd,
     model: options.model ?? null,
     approvalPolicy: options.approvalPolicy ?? "never",
-    sandbox: options.sandbox ?? "read-only"
+    sandbox: options.sandbox ?? "read-only",
+    config: options.config ?? null
   };
 }
 
@@ -977,6 +979,7 @@ export async function runAppServerTurn(cwd, options = {}) {
       const response = await resumeThread(client, options.resumeThreadId, cwd, {
         model: options.model,
         sandbox: options.sandbox,
+        config: options.config,
         ephemeral: false
       });
       threadId = response.thread.id;
@@ -985,6 +988,7 @@ export async function runAppServerTurn(cwd, options = {}) {
       const response = await startThread(client, cwd, {
         model: options.model,
         sandbox: options.sandbox,
+        config: options.config,
         ephemeral: options.persistThread ? false : true,
         threadName: options.persistThread ? options.threadName : options.threadName ?? null
       });

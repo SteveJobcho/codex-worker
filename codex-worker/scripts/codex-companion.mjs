@@ -52,6 +52,7 @@ import {
 } from "./lib/tracked-jobs.mjs";
 import { resolveWorkspaceRoot } from "./lib/workspace.mjs";
 import { ensureWorktree, listWorktrees, removeWorktree } from "./lib/worktree.mjs";
+import { buildMcpConfig, listClaudeMcpServers } from "./lib/claude-mcp.mjs";
 import {
   renderNativeReviewResult,
   renderReviewResult,
@@ -95,7 +96,8 @@ function printUsage() {
       "  node scripts/codex-companion.mjs setup [--enable-review-gate|--disable-review-gate] [--json]",
       "  node scripts/codex-companion.mjs review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>]",
       "  node scripts/codex-companion.mjs adversarial-review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>] [focus text]",
-      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol|luna>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--prompt-file <file>] [--json] [prompt]",
+      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol|luna>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--mcp <claude-server,...>] [--prompt-file <file>] [--json] [prompt]",
+      "  node scripts/codex-companion.mjs mcp-list [--json]",
       "  node scripts/codex-companion.mjs worktrees [--json]",
       "  node scripts/codex-companion.mjs worktree-remove <name> [--delete-branch] [--force] [--json]",
       "  node scripts/codex-companion.mjs status [job-id] [--all] [--json]",
@@ -496,8 +498,13 @@ async function executeTaskRun(request) {
     throw new Error("Provide a prompt, a prompt file, piped stdin, or use --resume-last.");
   }
 
+  const mcp = request.mcp?.length ? buildMcpConfig(request.mcpLookupCwd ?? request.cwd, request.mcp) : null;
+  if (mcp?.lent.length) {
+    request.onProgress?.(`Lending Claude MCP servers: ${mcp.lent.map((s) => s.codexName).join(", ")}.`);
+  }
   const result = await runAppServerTurn(workspaceRoot, {
     resumeThreadId,
+    config: mcp?.config ?? null,
     prompt: request.prompt,
     defaultPrompt: resumeThreadId ? DEFAULT_CONTINUE_PROMPT : "",
     model: request.model,
@@ -530,6 +537,8 @@ async function executeTaskRun(request) {
     cwd: workspaceRoot,
     sandbox: request.sandbox ?? (request.write ? "workspace-write" : "read-only"),
     worktree: request.worktree ?? null,
+    mcp: mcp?.lent ?? [],
+    mcpLookupCwd: request.mcp?.length ? request.mcpLookupCwd ?? request.cwd : null,
     rawOutput,
     touchedFiles: result.touchedFiles,
     commands: (result.commandExecutions ?? []).map((c) => ({ command: c.command, exitCode: c.exitCode ?? null })),
@@ -622,7 +631,7 @@ function buildTaskJob(workspaceRoot, taskMetadata, write) {
   });
 }
 
-function buildTaskRequest({ cwd, model, effort, prompt, write, resumeLast, jobId, sandbox, threadId, outputSchema, worktree }) {
+function buildTaskRequest({ cwd, model, effort, prompt, write, resumeLast, jobId, sandbox, threadId, outputSchema, worktree, mcp, mcpLookupCwd }) {
   return {
     cwd,
     model,
@@ -634,7 +643,9 @@ function buildTaskRequest({ cwd, model, effort, prompt, write, resumeLast, jobId
     sandbox,
     threadId,
     outputSchema,
-    worktree
+    worktree,
+    mcp,
+    mcpLookupCwd
   };
 }
 
@@ -667,7 +678,9 @@ function resolveThreadReference(cwd, reference) {
     const request = job.request ?? {
       cwd: result.cwd ?? job.workspaceRoot ?? null,
       sandbox: result.sandbox ?? (job.write ? "workspace-write" : null),
-      worktree: result.worktree ?? null
+      worktree: result.worktree ?? null,
+      mcp: (result.mcp ?? []).map((s) => s.name),
+      mcpLookupCwd: result.mcpLookupCwd ?? null
     };
     return { threadId: job.threadId, request };
   }
@@ -795,7 +808,7 @@ async function handleReview(argv) {
 
 async function handleTask(argv) {
   const { options, positionals } = parseCommandInput(argv, {
-    valueOptions: ["model", "effort", "cwd", "prompt-file", "sandbox", "worktree", "base", "thread", "output-schema"],
+    valueOptions: ["model", "effort", "cwd", "prompt-file", "sandbox", "worktree", "base", "thread", "output-schema", "mcp"],
     booleanOptions: ["json", "write", "resume-last", "resume", "fresh", "background"],
     aliasMap: {
       m: "model"
@@ -849,6 +862,14 @@ async function handleTask(argv) {
   }
   const write = sandbox === "workspace-write" || sandbox === "danger-full-access";
   const threadId = threadRef?.threadId ?? null;
+  // --mcp a,b lends Claude's stdio MCP servers to this job; follow-ups keep them.
+  const mcp = options.mcp
+    ? String(options.mcp).split(",").map((s) => s.trim()).filter(Boolean)
+    : priorRequest?.mcp ?? [];
+  const mcpLookupCwd = options.mcp ? invocationCwd : priorRequest?.mcpLookupCwd ?? invocationCwd;
+  if (mcp.length) {
+    buildMcpConfig(mcpLookupCwd, mcp); // fail fast on unknown or remote servers
+  }
   const taskMetadata = buildTaskRunMetadata({
     prompt,
     resumeLast: resumeLast || Boolean(threadId)
@@ -870,7 +891,9 @@ async function handleTask(argv) {
       sandbox,
       threadId,
       outputSchema,
-      worktree
+      worktree,
+      mcp,
+      mcpLookupCwd
     });
     const { payload } = enqueueBackgroundTask(cwd, job, request);
     outputCommandResult(payload, renderQueuedTaskLaunch(payload), options.json);
@@ -893,6 +916,8 @@ async function handleTask(argv) {
         threadId,
         outputSchema,
         worktree,
+        mcp,
+        mcpLookupCwd,
         onProgress: progress
       }),
     { json: options.json }
@@ -1085,6 +1110,20 @@ async function handleCancel(argv) {
   outputCommandResult(payload, renderCancelReport(nextJob), options.json);
 }
 
+function handleMcpList(argv) {
+  const { options } = parseCommandInput(argv, {
+    valueOptions: ["cwd"],
+    booleanOptions: ["json"]
+  });
+  const servers = listClaudeMcpServers(resolveCommandCwd(options));
+  const rendered = servers.length
+    ? servers
+        .map((s) => [s.name, s.transport, s.lendable ? `lendable (--mcp ${s.name})` : "not lendable", s.source].join("\t"))
+        .join("\n") + "\n"
+    : "No Claude MCP servers found.\n";
+  outputCommandResult(servers, rendered, options.json);
+}
+
 function handleWorktrees(argv) {
   const { options } = parseCommandInput(argv, {
     valueOptions: ["cwd"],
@@ -1121,6 +1160,9 @@ async function main() {
   }
 
   switch (subcommand) {
+    case "mcp-list":
+      handleMcpList(argv);
+      break;
     case "worktrees":
       handleWorktrees(argv);
       break;

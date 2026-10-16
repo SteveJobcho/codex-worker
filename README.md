@@ -61,6 +61,20 @@ Bash에서 직접 실행할 수도 있어요.
 node ~/.codex-worker/cw.mjs task --json --worktree fix-login --prompt-file brief.md
 ```
 
+## MCP 도구 빌려주기
+
+Codex는 셸 명령만 쓰는 게 아니에요. `~/.codex/config.toml`에 등록된 MCP 서버를 쓸 수 있고, Claude 쪽에 있는 로컬(stdio) MCP 서버도 작업 하나에만 빌려줄 수 있어요. 빌려줄 때 Codex 설정 파일은 바뀌지 않습니다.
+
+```bash
+node ~/.codex-worker/cw.mjs mcp-list
+```
+
+```bash
+node ~/.codex-worker/cw.mjs task --json --mcp Roblox_Studio --prompt-file brief.md
+```
+
+URL로 접속하면서 로그인이 필요한 MCP와 Claude 앱에 내장된 도구는 빌려줄 수 없어요.
+
 ## 설정 (환경 변수)
 
 | 변수 | 기본값 | 설명 |
