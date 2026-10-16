@@ -67,7 +67,9 @@ const ROOT_DIR = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const REVIEW_SCHEMA = path.join(ROOT_DIR, "schemas", "review-output.schema.json");
 const DEFAULT_STATUS_WAIT_TIMEOUT_MS = 240000;
 const DEFAULT_STATUS_POLL_INTERVAL_MS = 2000;
-const VALID_REASONING_EFFORTS = new Set(["none", "minimal", "low", "medium", "high", "xhigh"]);
+const VALID_REASONING_EFFORTS = new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max"]);
+// GPT-6 Astra and GPT-6.1 Sol reject these efforts; the closest supported one is low.
+const NO_NONE_EFFORT_MODELS = /^gpt-6(\.\d+)?-(sol|astra)$/;
 // codex-worker: workers always run on Sol unless a run names another model.
 // CODEX_WORKER_MODEL overrides the default without editing the plugin.
 const DEFAULT_WORKER_MODEL = process.env.CODEX_WORKER_MODEL?.trim() || "gpt-6.1-sol";
@@ -130,7 +132,7 @@ function normalizeReasoningEffort(effort) {
   }
   if (!VALID_REASONING_EFFORTS.has(normalized)) {
     throw new Error(
-      `Unsupported reasoning effort "${effort}". Use one of: none, minimal, low, medium, high, xhigh.`
+      `Unsupported reasoning effort "${effort}". Use one of: low, medium, high, xhigh, max (none/minimal only for models that accept them).`
     );
   }
   return normalized;
@@ -799,7 +801,12 @@ async function handleTask(argv) {
 
   const invocationCwd = resolveCommandCwd(options);
   const model = normalizeRequestedModel(options.model);
-  const effort = normalizeReasoningEffort(options.effort);
+  let effort = normalizeReasoningEffort(options.effort);
+  if ((effort === "none" || effort === "minimal") && NO_NONE_EFFORT_MODELS.test(model) && model !== "gpt-6-sol") {
+    process.stderr.write(`[codex-worker] ${model} does not support effort "${effort}"; using "low".
+`);
+    effort = "low";
+  }
   const prompt = readTaskPrompt(invocationCwd, options, positionals);
   const outputSchema = options["output-schema"]
     ? readOutputSchema(path.resolve(invocationCwd, options["output-schema"]))

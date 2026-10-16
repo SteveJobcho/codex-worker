@@ -1,6 +1,6 @@
 ---
 name: worker
-description: Use Codex (OpenAI GPT-5.x coding agent) as a worker Claude drives directly from Bash — delegate implementation, debugging, refactors, test writing, research or a second opinion; run several Codex jobs in parallel in isolated git worktrees; continue a job's thread with follow-ups. Use when work can be split off, when a fresh independent pass or cross-model check helps, or when the user says "codex", "코덱스", "codex한테 시켜", "워커".
+description: Use Codex (OpenAI coding agent on GPT-6.1 Sol) as a worker Claude drives directly from Bash — delegate implementation, debugging, refactors, test writing, research or a second opinion; run several Codex jobs in parallel in isolated git worktrees; continue a job's thread with follow-ups. Use when work can be split off, when a fresh independent pass or cross-model check helps, or when the user says "codex", "코덱스", "codex한테 시켜", "워커".
 ---
 
 # Codex worker
@@ -38,7 +38,7 @@ Flags:
 | `--thread <job-id>` | Continue that job's Codex thread (same cwd/worktree/sandbox) with a follow-up prompt |
 | `--resume-last` | Continue the latest finished task thread of this session |
 | `--model <id>` | Default is always `gpt-6.1-sol` (Sol; needs codex-cli ≥ 0.159 — if it 400s with "not supported when using Codex with a ChatGPT account", update the CLI: `npm install -g @openai/codex@latest`). Never pass this unless the user explicitly names another model |
-| `--effort <none…xhigh>` | Reasoning effort (leave unset unless the task is clearly trivial or very hard) |
+| `--effort <low/medium/high/xhigh/max>` | Reasoning effort; unset = `medium`. Sol rejects `none`/`minimal` (mapped to `low`). Pick by the table in `sol-prompting` |
 | `--output-schema <file.json>` | Force Codex's final message to match a JSON schema (it lands in `rawOutput` as JSON text) |
 
 ## Parallel workers
@@ -64,18 +64,9 @@ If a job fails, report the `error`/stderr; decide whether to retry with a sharpe
 
 ## Writing the prompt
 
-Codex starts with no context from this conversation. Give it what it needs, compactly (see the `gpt-5-4-prompting` skill for blocks and recipes):
-
-```xml
-<task>What to do, where (paths), and why. Relevant facts you already know.</task>
-<constraints>Scope limits, files not to touch, style to match, no unrelated refactors.</constraints>
-<done_when>Concrete finish line: tests that pass, behavior that works.</done_when>
-<verification>Commands to run before finishing (tests, typecheck, build).</verification>
-<output>Short final report: what changed (files), how it was verified, anything unresolved.</output>
-```
+Before writing any prompt file, load the `codex-worker:sol-prompting` skill and build the prompt from its skeleton. Codex starts with none of this conversation's context. Sol tends to stop early, ask questions, over-follow AGENTS.md and skills, over-test and over-format, and those blocks counter each habit.
 
 - One clear task per job. Split unrelated asks into separate jobs.
-- Say whether Codex should keep going on its own or stop on missing high-risk info.
 - Never paste secrets into prompts.
 
 ## Other commands
