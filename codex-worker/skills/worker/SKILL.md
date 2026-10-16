@@ -1,11 +1,16 @@
 ---
 name: worker
-description: Use Codex (OpenAI coding agent on GPT-6.1 Sol) as a worker Claude drives directly from Bash — delegate implementation, debugging, refactors, test writing, research or a second opinion; run several Codex jobs in parallel in isolated git worktrees; continue a job's thread with follow-ups. Use when work can be split off, when a fresh independent pass or cross-model check helps, or when the user says "codex", "코덱스", "codex한테 시켜", "워커".
+description: Use Codex (OpenAI coding agent on GPT-6.1 Sol) as a worker Claude drives directly from Bash — delegate backend/logic implementation, debugging, refactors, test writing, research or a second opinion (never UI/frontend); run several Codex jobs in parallel in isolated git worktrees; continue a job's thread with follow-ups. Use when work can be split off, when a fresh independent pass or cross-model check helps, or when the user says "codex", "코덱스", "codex한테 시켜", "워커".
 ---
 
 # Codex worker
 
 Codex is a separate coding agent (OpenAI). You call it straight from Bash — no subagent hop — and you stay the orchestrator: you split the work, write the prompts, run the jobs, check their results, and integrate.
+
+## Two standing rules from the user
+
+1. **No UI or frontend work goes to Codex.** That covers pages, components, styling and CSS, layout, visual design, UX copy, animation, and design tokens, along with anything judged by how it looks or feels. You do that work yourself. Codex may still handle non-visual pieces of a frontend codebase: build config, API clients, data and state logic, and tests of pure logic. Brief those with an explicit "do not change markup, styles, or copy".
+2. **Codex has no human taste, so you supply it.** Write the brief so specifically that Codex can produce the best result in a single pass. Decide every judgment call yourself and write it down: names, interfaces and signatures, file layout, error messages and wording, edge-case behavior, what to leave out. Then nothing is left to Codex's own taste. A vague brief followed by fix-up rounds is the failure mode to avoid.
 
 ## Launcher
 
@@ -76,6 +81,8 @@ Before writing any prompt file, load the `codex-worker:sol-prompting` skill and 
 - `status [job-id] [--all] [--json]`, `result <job-id> --json`, `cancel <job-id> --json`.
 
 ## When not to use it
+
+- Anything UI/frontend or taste-driven (rule 1 above).
 
 - Quick edits or lookups you can finish in a few tool calls.
 - Work needing this conversation's full context that would take longer to brief than to do.

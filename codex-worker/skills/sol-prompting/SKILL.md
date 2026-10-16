@@ -33,6 +33,21 @@ Source: OpenAI "Latest model" guide (developers.openai.com/api/docs/guides/lates
 
 Tighten the prompt before you raise effort. A clear finish line and verification step help more than extra reasoning.
 
+## Taste lives in the brief, not in the model
+
+GPT has no sense of human taste. Whatever you leave open, it fills with generic, mechanical choices. So aim for the best result in one pass by deciding everything a person would judge:
+
+- **Exact scope:** which files and functions to change, and which ones must stay untouched.
+- **Interfaces:** names, signatures, types, return shapes, and file and module layout. Give them literally where you can.
+- **Behavior:** each edge case and what should happen, error cases and their exact messages, defaults.
+- **Style anchors:** "match `path/to/similar.ts`", existing naming conventions, comment density.
+- **Exclusions:** what not to add, such as extra options, abstractions, logging, docs, or "improvements".
+- **Acceptance:** concrete inputs paired with the expected outputs or behavior.
+
+If you can't specify a part yet, either decide it first or keep that part for yourself. Don't hand Codex an open design question. Long, precise briefs are fine; vague short ones are not.
+
+**Never brief UI/frontend work:** visual, layout, styling, copy, or UX. That stays with Claude.
+
 ## Prompt skeleton
 
 Write the prompt to a file and pass `--prompt-file`. Use XML-tagged blocks and include only the ones the job needs.
@@ -58,8 +73,15 @@ low-risk reading, note the assumption, and keep going. Skip warnings, disclaimer
 safety checklists about hypothetical risk.
 </follow_through>
 
+<spec>
+Every decision already made: exact names and signatures, file layout, behavior per edge
+case, error messages, defaults. Concrete input → expected output examples.
+</spec>
+
 <constraints>
-Scope limits: files to leave alone, no unrelated refactors, match the surrounding style.
+Scope limits: files to leave alone, no unrelated refactors, match the surrounding style
+(name a reference file). Do not add anything the spec doesn't ask for. Do not touch
+markup, styles, or user-facing copy.
 </constraints>
 
 <done_when>
@@ -83,7 +105,7 @@ and anything unresolved or assumed. No recap of the task, no stock phrases.
 
 | Job | Blocks |
 |---|---|
-| Implementation or fix (`--write`/`--worktree`) | task, instruction_priority, follow_through, constraints, done_when, verification, final_report |
+| Implementation or fix (`--write`/`--worktree`) | task, instruction_priority, follow_through, **spec**, constraints, done_when, verification, final_report |
 | Diagnosis or root cause (read-only) | task, follow_through, `grounding` (below), final_report as facts → inference → next step |
 | Review or second opinion | task, `grounding`, final_report as findings ordered by severity with file:line |
 | Research or recommendation | task, `grounding`, final_report with sources or file paths for each claim |
