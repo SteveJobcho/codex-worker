@@ -37,7 +37,7 @@ Flags:
 | `--worktree <name>` | Create/reuse an isolated worktree on branch `codex/<name>` (from HEAD, or `--base <ref>`) and run there; implies `--write` |
 | `--thread <job-id>` | Continue that job's Codex thread (same cwd/worktree/sandbox) with a follow-up prompt |
 | `--resume-last` | Continue the latest finished task thread of this session |
-| `--model <id>` / `--model spark` | Override model (leave unset by default) |
+| `--model <id>` | Default is always `gpt-6.1-sol` (Sol). Never pass this unless the user explicitly names another model |
 | `--effort <none…xhigh>` | Reasoning effort (leave unset unless the task is clearly trivial or very hard) |
 | `--output-schema <file.json>` | Force Codex's final message to match a JSON schema (it lands in `rawOutput` as JSON text) |
 

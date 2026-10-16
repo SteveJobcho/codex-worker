@@ -1,6 +1,6 @@
 ---
 description: Hand a task to a Codex worker (investigation, a fix, or a follow-up on an earlier job)
-argument-hint: "[--background] [--worktree <name>] [--thread <job-id>|--resume|--fresh] [--sandbox read-only|write|full] [--model <model|spark>] [--effort <none|minimal|low|medium|high|xhigh>] [what Codex should do]"
+argument-hint: "[--background] [--worktree <name>] [--thread <job-id>|--resume|--fresh] [--sandbox read-only|write|full] [--model <model|sol>] [--effort <none|minimal|low|medium|high|xhigh>] [what Codex should do]"
 allowed-tools: Bash(node:*), Read, Skill
 ---
 

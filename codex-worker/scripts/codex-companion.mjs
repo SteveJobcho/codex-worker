@@ -68,7 +68,10 @@ const REVIEW_SCHEMA = path.join(ROOT_DIR, "schemas", "review-output.schema.json"
 const DEFAULT_STATUS_WAIT_TIMEOUT_MS = 240000;
 const DEFAULT_STATUS_POLL_INTERVAL_MS = 2000;
 const VALID_REASONING_EFFORTS = new Set(["none", "minimal", "low", "medium", "high", "xhigh"]);
-const MODEL_ALIASES = new Map([["spark", "gpt-5.3-codex-spark"]]);
+// codex-worker: workers always run on Sol unless a run names another model.
+// CODEX_WORKER_MODEL overrides the default without editing the plugin.
+const DEFAULT_WORKER_MODEL = process.env.CODEX_WORKER_MODEL?.trim() || "gpt-6.1-sol";
+const MODEL_ALIASES = new Map([["sol", DEFAULT_WORKER_MODEL]]);
 const SANDBOX_ALIASES = new Map([
   ["read-only", "read-only"],
   ["ro", "read-only"],
@@ -87,7 +90,7 @@ function printUsage() {
       "  node scripts/codex-companion.mjs setup [--enable-review-gate|--disable-review-gate] [--json]",
       "  node scripts/codex-companion.mjs review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>]",
       "  node scripts/codex-companion.mjs adversarial-review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>] [focus text]",
-      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|spark>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--prompt-file <file>] [--json] [prompt]",
+      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--prompt-file <file>] [--json] [prompt]",
       "  node scripts/codex-companion.mjs worktrees [--json]",
       "  node scripts/codex-companion.mjs worktree-remove <name> [--delete-branch] [--force] [--json]",
       "  node scripts/codex-companion.mjs status [job-id] [--all] [--json]",
@@ -110,12 +113,9 @@ function outputCommandResult(payload, rendered, asJson) {
 }
 
 function normalizeRequestedModel(model) {
-  if (model == null) {
-    return null;
-  }
-  const normalized = String(model).trim();
+  const normalized = String(model ?? "").trim();
   if (!normalized) {
-    return null;
+    return DEFAULT_WORKER_MODEL;
   }
   return MODEL_ALIASES.get(normalized.toLowerCase()) ?? normalized;
 }
@@ -772,7 +772,7 @@ async function handleReviewCommand(argv, config) {
         cwd,
         base: options.base,
         scope: options.scope,
-        model: options.model,
+        model: normalizeRequestedModel(options.model),
         focusText,
         reviewName: config.reviewName,
         onProgress: progress
