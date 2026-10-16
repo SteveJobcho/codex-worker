@@ -1,0 +1,13 @@
+{
+  "name": "neohee-local",
+  "owner": {
+    "name": "neohee"
+  },
+  "plugins": [
+    {
+      "name": "codex-worker",
+      "source": "./codex-worker",
+      "description": "Codex as a worker Claude drives directly (parallel jobs, worktrees, sandbox control, JSON results)."
+    }
+  ]
+}
