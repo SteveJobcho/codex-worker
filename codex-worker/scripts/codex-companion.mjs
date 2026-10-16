@@ -657,7 +657,14 @@ function resolveThreadReference(cwd, reference) {
     if (job.status === "queued" || job.status === "running") {
       throw new Error(`Job ${value} is still ${job.status}; wait for it before continuing its thread.`);
     }
-    return { threadId: job.threadId, request: job.request ?? null };
+    // Background jobs keep their request; foreground jobs only keep the result payload.
+    const result = job.result && typeof job.result === "object" ? job.result : {};
+    const request = job.request ?? {
+      cwd: result.cwd ?? job.workspaceRoot ?? null,
+      sandbox: result.sandbox ?? (job.write ? "workspace-write" : null),
+      worktree: result.worktree ?? null
+    };
+    return { threadId: job.threadId, request };
   }
   return { threadId: value, request: null };
 }
