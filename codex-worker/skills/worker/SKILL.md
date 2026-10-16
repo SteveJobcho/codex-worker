@@ -1,6 +1,6 @@
 ---
 name: worker
-description: Use Codex (OpenAI coding agent; GPT-6.1 Sol, or GPT-6 Luna for trivial work) as a worker Claude drives directly from Bash. Delegate backend and logic work of any size, including small things like value tweaks, renames, file-structure surveys and lookups, as well as implementation, debugging, refactors, tests, research and second opinions. Never delegate UI/frontend. Run several Codex jobs in parallel in isolated git worktrees, and continue a job's thread with follow-ups. Use proactively, without being asked, for any non-UI task that can be briefed, small or large. Also use when the user says "codex", "코덱스", "codex한테 시켜", "워커".
+description: Use Codex (OpenAI coding agent; GPT-6.1 Sol, or GPT-6 Luna for trivial work) as a worker Claude drives directly from Bash. Delegate backend and logic work of any size, including small things like value tweaks, renames, file-structure surveys and lookups, as well as implementation, debugging, refactors, tests, research and second opinions. Never delegate UI/frontend. Run several Codex jobs in parallel in isolated git worktrees, and continue a job's thread with follow-ups. Use proactively, without being asked, whenever your own judgment says handing the task off beats doing it yourself; see "Deciding to delegate". Also use when the user says "codex", "코덱스", "codex한테 시켜", "워커".
 ---
 
 # Codex worker
@@ -11,6 +11,26 @@ Codex is a separate coding agent (OpenAI). You call it straight from Bash — no
 
 1. **No UI or frontend work goes to Codex.** That covers pages, components, styling and CSS, layout, visual design, UX copy, animation, and design tokens, along with anything judged by how it looks or feels. You do that work yourself. Codex may still handle non-visual pieces of a frontend codebase: build config, API clients, data and state logic, and tests of pure logic. Brief those with an explicit "do not change markup, styles, or copy".
 2. **Codex has no human taste, so you supply it.** Write the brief so specifically that Codex can produce the best result in a single pass. Decide every judgment call yourself and write it down: names, interfaces and signatures, file layout, error messages and wording, edge-case behavior, what to leave out. Then nothing is left to Codex's own taste. A vague brief followed by fix-up rounds is the failure mode to avoid.
+
+## Deciding to delegate
+
+You decide case by case, without asking. Task size doesn't settle it: small tasks are fine to hand off. What matters is whether delegating is the better move for this task. Weigh it like this.
+
+**Delegate** when most of these hold:
+- The task can be stated completely in a brief. You already know what "done" looks like and have made the judgment calls (rule 2).
+- Writing the brief takes clearly less effort than doing the work, or the work would fill your context with reading and output you don't need, such as surveys, searches, bulk edits, test runs or logs.
+- It's independent enough to run while you do something else, or in parallel with other workers.
+- The result is easy to check: a diff, a test, or a short factual answer.
+- A second, independent opinion adds value: cross-checking a diagnosis, reviewing a risky change, or a fresh attempt after you're stuck.
+
+**Do it yourself** when any of these hold:
+- It's UI, frontend or taste-driven (rule 1).
+- It's a one- or two-step edit you can make faster than you can write the brief.
+- It depends on this conversation's context, or on judgment calls you haven't made yet and can't make before starting.
+- It needs tight back-and-forth with the user, or each step depends on what the previous one showed.
+- It touches secrets, production systems, or something irreversible.
+
+When the call is close, prefer delegating mechanical work to Luna and keep design-heavy reasoning for yourself. Mention delegations briefly to the user (what went to Codex and why) and report the verified results, not Codex's claims.
 
 ## Picking the model
 

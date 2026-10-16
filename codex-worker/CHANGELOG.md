@@ -1,5 +1,9 @@
 # Changelog
 
+## codex-worker 1.3.1 (fork)
+
+- `worker` skill gains "Deciding to delegate": Claude judges per task whether to hand off (briefable, cheaper to brief than to do, independent, easy to verify) or do it itself (UI, one-step edits, context-heavy or back-and-forth work, secrets or irreversible actions).
+
 ## codex-worker 1.3.0 (fork)
 
 Forked from openai/codex-plugin-cc 1.0.4 and reworked so Claude drives Codex as a worker:
