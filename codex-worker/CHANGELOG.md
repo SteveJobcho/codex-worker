@@ -1,5 +1,10 @@
 # Changelog
 
+## codex-worker 1.7.0 (fork)
+
+- The Roblox Studio bridge (`studio_bridge/server.py`, `bridge.lua`) ships with the plugin, so Studio script edits through the bridge work in any project. A project's own `tools/studio_bridge` still wins. The copies are byte-identical (`SHA256SUMS.txt`), so they share one server on port 47600.
+- New `bridge [start|status|path]` command. It needs Python 3, and it never stops the shared server.
+
 ## codex-worker 1.6.0 (fork)
 
 - `task --add-dir <dir,...>` adds writable folders for a single job, set per thread through `sandbox_workspace_write.writable_roots`. `%VAR%` is expanded, and `--thread` follow-ups keep the folders.

@@ -1,0 +1,2 @@
+codex-worker/studio_bridge/server.py -text
+codex-worker/studio_bridge/bridge.lua -text

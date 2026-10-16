@@ -63,15 +63,15 @@ Studio work can be delegated too. Studio is live state with no git, so you set u
 
 **Read-only work** (surveys, finding scripts, explaining how something works): launch with `--mcp Roblox_Studio` (or the project's Studio server name from `mcp-list`), name the target Studio, and say "read only".
 
-**Script edits:** check whether the project ships a Studio bridge, i.e. `tools/studio_bridge/README.md`, or a bridge that the project's CLAUDE.md, AGENTS.md or docs point to. If it does, Codex MUST use it for any edit bigger than a few spots, the same way Claude would:
+**Script edits:** Codex MUST use the Studio bridge for any edit bigger than a few spots. The bridge pulls a script into a local copy, Codex edits the copy, tests it in Studio, then pushes it once. This plugin ships a bridge, so it's available in every project. When the project has its own `tools/studio_bridge`, that copy is used instead, and the project's rules for it (CLAUDE.md, AGENTS.md, docs) take precedence. Full API: the bridge's `README.md` (`bridge path` prints where it is).
 
-1. **You** start the shared server first: run `python tools/studio_bridge/server.py`, which is safe if it's already running. Never stop it. Take the `root=` path from its `READY` line, by default `%LOCALAPPDATA%\Temp\studio_bridge`.
+1. **You** start the shared server first with `node "$HOME/.codex-worker/cw.mjs" bridge start`. It's safe if the server is already running, and it needs Python 3. Never stop the server: other agents may be using it. Take the `root=` path from its `READY` line (by default `%LOCALAPPDATA%\Temp\studio_bridge`, or the system temp folder outside Windows).
 2. **You** identify the target Studio (`list_roblox_studios`) and put its name and studio_id in the brief, along with any Studio that must not be touched.
 3. Launch with the Studio MCP lent and the bridge root writable:
    ```bash
    node "$HOME/.codex-worker/cw.mjs" task --json --write --mcp Roblox_Studio --add-dir "<bridge root>" --prompt-file brief.md
    ```
-4. The brief carries the bridge procedure, copied from the project's README:
+4. The brief carries the bridge procedure, taken from the bridge's README:
    - In every `execute_luau` (Edit mode only), load the client first: `local B = loadstring(game:GetService("HttpService"):GetAsync("http://127.0.0.1:47600/bridge.lua", true))()`.
    - `B.pull(script, "codex-<task>/<Name>.lua")` into its own subfolder.
    - Edit the local copy at `B.file(rel)` with exact, minimal patches. Never rewrite the whole file.
@@ -81,7 +81,7 @@ Studio work can be delegated too. Studio is live state with no git, so you set u
    - Never start Play, save or publish. Never start or stop the bridge server.
 5. **You** verify the result: check that `B.status(...).same` is true and `script_read` the changed region. Then report what changed in which script.
 
-A few small edits can go straight through the MCP's `multi_edit` without the bridge. Tell Codex to re-read the script just before writing. If the project has no bridge, that is the only way to edit, so keep each edit small and exact.
+A few small edits can go straight through the MCP's `multi_edit` without the bridge. Tell Codex to re-read the script just before writing. If the bridge can't run (no Python, or the port is taken by an incompatible version), fall back to `multi_edit` with small, exact edits and say so.
 
 ## Picking the model
 

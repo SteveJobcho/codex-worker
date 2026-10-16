@@ -15,3 +15,5 @@ limitations under the License.
 Modifications Copyright 2026 neohee.
 This is a modified version of openai/codex-plugin-cc (https://github.com/openai/codex-plugin-cc).
 CHANGELOG.md describes the changes.
+
+studio_bridge/ (server.py, bridge.lua, README.md) is original work by neohee, distributed under the same Apache License 2.0.

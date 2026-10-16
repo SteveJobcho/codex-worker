@@ -53,6 +53,7 @@ import {
 import { resolveWorkspaceRoot } from "./lib/workspace.mjs";
 import { ensureWorktree, listWorktrees, removeWorktree } from "./lib/worktree.mjs";
 import { buildMcpConfig, listClaudeMcpServers } from "./lib/claude-mcp.mjs";
+import { resolveBridge, runBridgeServer } from "./lib/studio-bridge.mjs";
 import {
   renderNativeReviewResult,
   renderReviewResult,
@@ -98,6 +99,7 @@ function printUsage() {
       "  node scripts/codex-companion.mjs adversarial-review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>] [focus text]",
       "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol|luna>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--mcp <claude-server,...>] [--add-dir <dir,...>] [--prompt-file <file>] [--json] [prompt]",
       "  node scripts/codex-companion.mjs mcp-list [--json]",
+      "  node scripts/codex-companion.mjs bridge [start|status|path] [--json]",
       "  node scripts/codex-companion.mjs worktrees [--json]",
       "  node scripts/codex-companion.mjs worktree-remove <name> [--delete-branch] [--force] [--json]",
       "  node scripts/codex-companion.mjs status [job-id] [--all] [--json]",
@@ -1132,6 +1134,34 @@ async function handleCancel(argv) {
   outputCommandResult(payload, renderCancelReport(nextJob), options.json);
 }
 
+function handleBridge(argv) {
+  const { options, positionals } = parseCommandInput(argv, {
+    valueOptions: ["cwd"],
+    booleanOptions: ["json"]
+  });
+  const action = positionals[0] ?? "start";
+  const cwd = resolveCommandCwd(options);
+  if (action === "path") {
+    const bridge = resolveBridge(cwd);
+    outputCommandResult(bridge, `${bridge.dir} (${bridge.source})\n`, options.json);
+    return;
+  }
+  if (action !== "start" && action !== "status") {
+    // The server is shared by every agent on the machine; stopping it is left to the user.
+    throw new Error("Usage: bridge [start|status|path]. Stop the shared server yourself with `python <bridge dir>/server.py stop` if you really mean to.");
+  }
+  const run = runBridgeServer(cwd, [action]);
+  const ready = run.stdout.split(/\r?\n/).find((line) => line.startsWith("READY")) ?? null;
+  const root = ready?.match(/root=(.+?) pid=/)?.[1] ?? null;
+  const payload = { ...run, ready, root, running: action === "status" ? run.exitCode === 0 : Boolean(ready) };
+  const rendered =
+    [run.stdout, run.stderr].filter(Boolean).join("\n") +
+    `\n[bridge: ${run.bridge.source} copy at ${run.bridge.dir}${run.bridge.identicalToBundled ? "" : ", DIFFERS from the bundled copy"}]\n`;
+  outputCommandResult(payload, rendered, options.json);
+  if (action === "start" && !ready) process.exitCode = run.exitCode || 1;
+  if (action === "status") process.exitCode = run.exitCode ?? 1;
+}
+
 function handleMcpList(argv) {
   const { options } = parseCommandInput(argv, {
     valueOptions: ["cwd"],
@@ -1182,6 +1212,9 @@ async function main() {
   }
 
   switch (subcommand) {
+    case "bridge":
+      handleBridge(argv);
+      break;
     case "mcp-list":
       handleMcpList(argv);
       break;
