@@ -37,7 +37,7 @@ Flags:
 | `--worktree <name>` | Create/reuse an isolated worktree on branch `codex/<name>` (from HEAD, or `--base <ref>`) and run there; implies `--write` |
 | `--thread <job-id>` | Continue that job's Codex thread (same cwd/worktree/sandbox) with a follow-up prompt |
 | `--resume-last` | Continue the latest finished task thread of this session |
-| `--model <id>` | Default is always `gpt-6-sol` (Sol; `gpt-6.1-sol` is rejected on a ChatGPT login). Never pass this unless the user explicitly names another model |
+| `--model <id>` | Default is always `gpt-6.1-sol` (Sol; needs codex-cli ≥ 0.159 — if it 400s with "not supported when using Codex with a ChatGPT account", update the CLI: `npm install -g @openai/codex@latest`). Never pass this unless the user explicitly names another model |
 | `--effort <none…xhigh>` | Reasoning effort (leave unset unless the task is clearly trivial or very hard) |
 | `--output-schema <file.json>` | Force Codex's final message to match a JSON schema (it lands in `rawOutput` as JSON text) |
 

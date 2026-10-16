@@ -70,7 +70,7 @@ const DEFAULT_STATUS_POLL_INTERVAL_MS = 2000;
 const VALID_REASONING_EFFORTS = new Set(["none", "minimal", "low", "medium", "high", "xhigh"]);
 // codex-worker: workers always run on Sol unless a run names another model.
 // CODEX_WORKER_MODEL overrides the default without editing the plugin.
-const DEFAULT_WORKER_MODEL = process.env.CODEX_WORKER_MODEL?.trim() || "gpt-6-sol";
+const DEFAULT_WORKER_MODEL = process.env.CODEX_WORKER_MODEL?.trim() || "gpt-6.1-sol";
 const MODEL_ALIASES = new Map([["sol", DEFAULT_WORKER_MODEL]]);
 const SANDBOX_ALIASES = new Map([
   ["read-only", "read-only"],
