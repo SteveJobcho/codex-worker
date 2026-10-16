@@ -1,5 +1,10 @@
 # Changelog
 
+## codex-worker 1.6.0 (fork)
+
+- `task --add-dir <dir,...>` adds writable folders for a single job, set per thread through `sandbox_workspace_write.writable_roots`. `%VAR%` is expanded, and `--thread` follow-ups keep the folders.
+- New "Roblox Studio jobs" section in the `worker` skill. Read-only jobs get the Studio MCP lent via `--mcp`. Script edits go through the project's Studio bridge (`tools/studio_bridge`): Claude starts the shared server and picks the target Studio, Codex pulls, edits the copy, loads it and pushes once, and Claude verifies `B.status().same`.
+
 ## codex-worker 1.5.0 (fork)
 
 - `task --mcp <name,...>` lends Claude's local (stdio) MCP servers to a single Codex job. It reads them from the project `.mcp.json`, `~/.claude.json` and Claude Desktop's config, and injects them as a per-thread config override, so `~/.codex/config.toml` is untouched. `--thread` follow-ups keep them. `mcp-list` shows what can be lent.

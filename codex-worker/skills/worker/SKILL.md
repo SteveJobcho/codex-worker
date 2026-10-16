@@ -57,6 +57,32 @@ node "$HOME/.codex-worker/cw.mjs" task --json --mcp Roblox_Studio --prompt-file 
 - Only stdio servers can be lent. Remote or OAuth servers (HTTP connectors) and Claude's built-in app tools (browser, computer use, session tools) can't be.
 - Tell Codex in the brief which MCP tools to use and whether it may change anything through them. Studio and Blender edits are live and not covered by git, so default to read-only unless the user asked for changes.
 
+## Roblox Studio jobs
+
+Studio work can be delegated too. Studio is live state with no git, so you set up the session and do the verifying yourself.
+
+**Read-only work** (surveys, finding scripts, explaining how something works): launch with `--mcp Roblox_Studio` (or the project's Studio server name from `mcp-list`), name the target Studio, and say "read only".
+
+**Script edits:** check whether the project ships a Studio bridge, i.e. `tools/studio_bridge/README.md`, or a bridge that the project's CLAUDE.md, AGENTS.md or docs point to. If it does, Codex MUST use it for any edit bigger than a few spots, the same way Claude would:
+
+1. **You** start the shared server first: run `python tools/studio_bridge/server.py`, which is safe if it's already running. Never stop it. Take the `root=` path from its `READY` line, by default `%LOCALAPPDATA%\Temp\studio_bridge`.
+2. **You** identify the target Studio (`list_roblox_studios`) and put its name and studio_id in the brief, along with any Studio that must not be touched.
+3. Launch with the Studio MCP lent and the bridge root writable:
+   ```bash
+   node "$HOME/.codex-worker/cw.mjs" task --json --write --mcp Roblox_Studio --add-dir "<bridge root>" --prompt-file brief.md
+   ```
+4. The brief carries the bridge procedure, copied from the project's README:
+   - In every `execute_luau` (Edit mode only), load the client first: `local B = loadstring(game:GetService("HttpService"):GetAsync("http://127.0.0.1:47600/bridge.lua", true))()`.
+   - `B.pull(script, "codex-<task>/<Name>.lua")` into its own subfolder.
+   - Edit the local copy at `B.file(rel)` with exact, minimal patches. Never rewrite the whole file.
+   - Test with `B.load(rel, script)` for ModuleScripts, or `B.check(rel)` (compile only) for Scripts and LocalScripts.
+   - Call `B.push(script, rel)` **once** at the end, then report `B.status(script, rel).same`.
+   - If push fails with "changed in Studio since pull", pull to a new name, move the edits over and push that copy.
+   - Never start Play, save or publish. Never start or stop the bridge server.
+5. **You** verify the result: check that `B.status(...).same` is true and `script_read` the changed region. Then report what changed in which script.
+
+A few small edits can go straight through the MCP's `multi_edit` without the bridge. Tell Codex to re-read the script just before writing. If the project has no bridge, that is the only way to edit, so keep each edit small and exact.
+
 ## Picking the model
 
 | Work | Model |
@@ -99,6 +125,7 @@ Flags:
 | `--model luna` | GPT-6 Luna for trivial work (see "Picking the model"). Without the flag: `gpt-6.1-sol` (needs codex-cli ≥ 0.159; if it 400s with "not supported when using Codex with a ChatGPT account", run `npm install -g @openai/codex@latest`). Use no other model unless the user names one |
 | `--effort <none/low/medium/high/xhigh/max>` | Reasoning effort; unset = `medium`. Sol rejects `none`/`minimal` (mapped to `low`), Luna accepts `none`. Pick by the table in `sol-prompting` |
 | `--mcp <name,...>` | Lend Claude's local MCP servers to this job only (see "Tools Codex can use") |
+| `--add-dir <dir,...>` | Extra folders Codex may write to in this job only, e.g. a Studio bridge root. Needs `--write`; `%VAR%` is expanded |
 | `--output-schema <file.json>` | Force Codex's final message to match a JSON schema (it lands in `rawOutput` as JSON text) |
 
 ## Parallel workers

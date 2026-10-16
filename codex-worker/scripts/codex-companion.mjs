@@ -96,7 +96,7 @@ function printUsage() {
       "  node scripts/codex-companion.mjs setup [--enable-review-gate|--disable-review-gate] [--json]",
       "  node scripts/codex-companion.mjs review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>]",
       "  node scripts/codex-companion.mjs adversarial-review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>] [focus text]",
-      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol|luna>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--mcp <claude-server,...>] [--prompt-file <file>] [--json] [prompt]",
+      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol|luna>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--mcp <claude-server,...>] [--add-dir <dir,...>] [--prompt-file <file>] [--json] [prompt]",
       "  node scripts/codex-companion.mjs mcp-list [--json]",
       "  node scripts/codex-companion.mjs worktrees [--json]",
       "  node scripts/codex-companion.mjs worktree-remove <name> [--delete-branch] [--force] [--json]",
@@ -502,9 +502,15 @@ async function executeTaskRun(request) {
   if (mcp?.lent.length) {
     request.onProgress?.(`Lending Claude MCP servers: ${mcp.lent.map((s) => s.codexName).join(", ")}.`);
   }
+  const threadConfig = { ...(mcp?.config ?? {}) };
+  if (request.addDirs?.length) {
+    // Extra writable roots for this job only, e.g. a Studio bridge's copy folder.
+    threadConfig["sandbox_workspace_write.writable_roots"] = request.addDirs;
+    request.onProgress?.(`Extra writable dirs: ${request.addDirs.join(", ")}.`);
+  }
   const result = await runAppServerTurn(workspaceRoot, {
     resumeThreadId,
-    config: mcp?.config ?? null,
+    config: Object.keys(threadConfig).length ? threadConfig : null,
     prompt: request.prompt,
     defaultPrompt: resumeThreadId ? DEFAULT_CONTINUE_PROMPT : "",
     model: request.model,
@@ -538,6 +544,7 @@ async function executeTaskRun(request) {
     sandbox: request.sandbox ?? (request.write ? "workspace-write" : "read-only"),
     worktree: request.worktree ?? null,
     mcp: mcp?.lent ?? [],
+    addDirs: request.addDirs ?? [],
     mcpLookupCwd: request.mcp?.length ? request.mcpLookupCwd ?? request.cwd : null,
     rawOutput,
     touchedFiles: result.touchedFiles,
@@ -631,7 +638,7 @@ function buildTaskJob(workspaceRoot, taskMetadata, write) {
   });
 }
 
-function buildTaskRequest({ cwd, model, effort, prompt, write, resumeLast, jobId, sandbox, threadId, outputSchema, worktree, mcp, mcpLookupCwd }) {
+function buildTaskRequest({ cwd, model, effort, prompt, write, resumeLast, jobId, sandbox, threadId, outputSchema, worktree, mcp, mcpLookupCwd, addDirs }) {
   return {
     cwd,
     model,
@@ -645,7 +652,8 @@ function buildTaskRequest({ cwd, model, effort, prompt, write, resumeLast, jobId
     outputSchema,
     worktree,
     mcp,
-    mcpLookupCwd
+    mcpLookupCwd,
+    addDirs
   };
 }
 
@@ -680,6 +688,7 @@ function resolveThreadReference(cwd, reference) {
       sandbox: result.sandbox ?? (job.write ? "workspace-write" : null),
       worktree: result.worktree ?? null,
       mcp: (result.mcp ?? []).map((s) => s.name),
+      addDirs: result.addDirs ?? [],
       mcpLookupCwd: result.mcpLookupCwd ?? null
     };
     return { threadId: job.threadId, request };
@@ -808,7 +817,7 @@ async function handleReview(argv) {
 
 async function handleTask(argv) {
   const { options, positionals } = parseCommandInput(argv, {
-    valueOptions: ["model", "effort", "cwd", "prompt-file", "sandbox", "worktree", "base", "thread", "output-schema", "mcp"],
+    valueOptions: ["model", "effort", "cwd", "prompt-file", "sandbox", "worktree", "base", "thread", "output-schema", "mcp", "add-dir"],
     booleanOptions: ["json", "write", "resume-last", "resume", "fresh", "background"],
     aliasMap: {
       m: "model"
@@ -870,6 +879,17 @@ async function handleTask(argv) {
   if (mcp.length) {
     buildMcpConfig(mcpLookupCwd, mcp); // fail fast on unknown or remote servers
   }
+  // --add-dir a,b gives this job write access to extra folders (workspace-write only).
+  const addDirs = options["add-dir"]
+    ? String(options["add-dir"])
+        .split(",")
+        .map((d) => d.trim())
+        .filter(Boolean)
+        .map((d) => path.resolve(invocationCwd, d.replace(/%([^%]+)%/g, (_, name) => process.env[name] ?? `%${name}%`)))
+    : priorRequest?.addDirs ?? [];
+  for (const dir of addDirs) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
   const taskMetadata = buildTaskRunMetadata({
     prompt,
     resumeLast: resumeLast || Boolean(threadId)
@@ -893,7 +913,8 @@ async function handleTask(argv) {
       outputSchema,
       worktree,
       mcp,
-      mcpLookupCwd
+      mcpLookupCwd,
+      addDirs
     });
     const { payload } = enqueueBackgroundTask(cwd, job, request);
     outputCommandResult(payload, renderQueuedTaskLaunch(payload), options.json);
@@ -918,6 +939,7 @@ async function handleTask(argv) {
         worktree,
         mcp,
         mcpLookupCwd,
+        addDirs,
         onProgress: progress
       }),
     { json: options.json }

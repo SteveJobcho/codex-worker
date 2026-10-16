@@ -75,6 +75,8 @@ node ~/.codex-worker/cw.mjs task --json --mcp Roblox_Studio --prompt-file brief.
 
 URL로 접속하면서 로그인이 필요한 MCP와 Claude 앱에 내장된 도구는 빌려줄 수 없어요.
 
+저장소 밖 폴더에 써야 하는 작업이라면 `--add-dir <폴더>`로 그 작업에서만 쓰기 권한을 줄 수 있어요. 예를 들어 Roblox Studio 브리지(`tools/studio_bridge`)의 사본 폴더가 그렇습니다. 프로젝트에 이 브리지가 있으면 Codex는 큰 스크립트를 고칠 때 pull → 사본 수정 → load로 테스트 → push 순서로 작업해요.
+
 ## 설정 (환경 변수)
 
 | 변수 | 기본값 | 설명 |
