@@ -69,6 +69,7 @@ node ~/.codex-worker/cw.mjs task --json --worktree fix-login --prompt-file brief
 | `CODEX_WORKER_LUNA_MODEL` | `gpt-6-luna` | 단순한 일에 쓰는 모델 (`--model luna`) |
 | `CODEX_WORKER_STATE_DIR` | `~/.codex-worker/state` | 작업 기록을 저장하는 곳 |
 | `CODEX_WORKER_WORKTREE_DIR` | `~/.codex-worker/worktrees` | worktree를 만드는 곳 |
+| `CODEX_WORKER_NUDGE` | (켜짐) | `0`이면 새 세션을 시작할 때 "맡길지 먼저 판단하라"는 안내를 넣지 않아요 |
 | `CODEX_WORKER_BROKER` | (꺼짐) | `1`이면 워커마다 Codex를 따로 띄우지 않고, 하나를 함께 씁니다 |
 
 ## 문제 해결

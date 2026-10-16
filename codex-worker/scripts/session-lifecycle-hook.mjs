@@ -95,10 +95,24 @@ import ${JSON.stringify(pathToFileURL(companion).href)};
   }
 }
 
+// codex-worker: a one-line nudge so fresh sessions weigh delegation before
+// starting work. CODEX_WORKER_NUDGE=0 turns it off.
+const DELEGATION_NUDGE =
+  "codex-worker is available. Before starting any non-UI coding task yourself, load the `codex-worker:worker` skill and decide " +
+  "(using its \"Deciding to delegate\" section) whether to hand all or part of it to a Codex worker. Repo surveys, value or rename " +
+  "changes, a function plus its tests, multi-file edits, test runs, debugging and research are typical hand-offs; UI/frontend never is.";
+
 function handleSessionStart(input) {
   appendEnvVar(SESSION_ID_ENV, input.session_id);
   appendEnvVar(PLUGIN_DATA_ENV, process.env[PLUGIN_DATA_ENV]);
   refreshLauncher();
+  if (process.env.CODEX_WORKER_NUDGE !== "0") {
+    process.stdout.write(
+      JSON.stringify({
+        hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: DELEGATION_NUDGE }
+      })
+    );
+  }
 }
 
 async function handleSessionEnd(input) {

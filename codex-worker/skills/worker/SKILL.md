@@ -1,6 +1,6 @@
 ---
 name: worker
-description: Use Codex (OpenAI coding agent; GPT-6.1 Sol, or GPT-6 Luna for trivial work) as a worker Claude drives directly from Bash. Delegate backend and logic work of any size, including small things like value tweaks, renames, file-structure surveys and lookups, as well as implementation, debugging, refactors, tests, research and second opinions. Never delegate UI/frontend. Run several Codex jobs in parallel in isolated git worktrees, and continue a job's thread with follow-ups. Use proactively, without being asked, whenever your own judgment says handing the task off beats doing it yourself; see "Deciding to delegate". Also use when the user says "codex", "코덱스", "codex한테 시켜", "워커".
+description: Check this skill at the start of every non-UI coding task, before you begin the work yourself. It decides whether to hand all or part of the task to a Codex worker (OpenAI; GPT-6.1 Sol, or GPT-6 Luna for trivial work) that you drive from Bash. Typical hand-offs are repo or file-structure surveys, finding where things are defined, adding a function together with its tests, multi-file edits, bulk or mechanical changes (values, renames), running and fixing tests, debugging, refactors, research and second opinions. Parallel workers run in isolated git worktrees. Never hand off UI/frontend. Use it proactively, without being asked, also when the user says "codex", "코덱스", "codex한테 시켜" or "워커".
 ---
 
 # Codex worker

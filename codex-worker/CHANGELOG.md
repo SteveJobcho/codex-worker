@@ -1,5 +1,10 @@
 # Changelog
 
+## codex-worker 1.4.0 (fork)
+
+- The `worker` skill description is rewritten as a trigger: check it at the start of every non-UI coding task.
+- The SessionStart hook adds a one-line reminder to weigh delegation before starting work. `CODEX_WORKER_NUDGE=0` turns it off.
+
 ## codex-worker 1.3.1 (fork)
 
 - `worker` skill gains "Deciding to delegate": Claude judges per task whether to hand off (briefable, cheaper to brief than to do, independent, easy to verify) or do it itself (UI, one-step edits, context-heavy or back-and-forth work, secrets or irreversible actions).
