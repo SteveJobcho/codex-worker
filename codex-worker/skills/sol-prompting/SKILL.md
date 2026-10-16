@@ -25,7 +25,8 @@ Source: OpenAI "Latest model" guide (developers.openai.com/api/docs/guides/lates
 
 | Task | `--effort` |
 |---|---|
-| Mechanical edits, renames, lookups, one-line answers | `low` |
+| Mechanical edits, renames, lookups, one-line answers | send to **Luna** (`--model luna --effort low`, or `none`) |
+| Small but non-trivial Sol job | `low` |
 | Normal implementation or bug fix with clear scope | leave unset (`medium`) |
 | Root-cause debugging, cross-file refactors, tricky algorithms | `high` |
 | Hard design or debugging where a wrong answer is expensive | `xhigh` |

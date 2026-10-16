@@ -1,16 +1,25 @@
 ---
 name: worker
-description: Use Codex (OpenAI coding agent on GPT-6.1 Sol) as a worker Claude drives directly from Bash — delegate backend/logic implementation, debugging, refactors, test writing, research or a second opinion (never UI/frontend); run several Codex jobs in parallel in isolated git worktrees; continue a job's thread with follow-ups. Use when work can be split off, when a fresh independent pass or cross-model check helps, or when the user says "codex", "코덱스", "codex한테 시켜", "워커".
+description: Use Codex (OpenAI coding agent; GPT-6.1 Sol, or GPT-6 Luna for trivial work) as a worker Claude drives directly from Bash. Delegate backend and logic work of any size, including small things like value tweaks, renames, file-structure surveys and lookups, as well as implementation, debugging, refactors, tests, research and second opinions. Never delegate UI/frontend. Run several Codex jobs in parallel in isolated git worktrees, and continue a job's thread with follow-ups. Use proactively, without being asked, for any non-UI task that can be briefed, small or large. Also use when the user says "codex", "코덱스", "codex한테 시켜", "워커".
 ---
 
 # Codex worker
 
 Codex is a separate coding agent (OpenAI). You call it straight from Bash — no subagent hop — and you stay the orchestrator: you split the work, write the prompts, run the jobs, check their results, and integrate.
 
-## Two standing rules from the user
+## Two standing rules
 
 1. **No UI or frontend work goes to Codex.** That covers pages, components, styling and CSS, layout, visual design, UX copy, animation, and design tokens, along with anything judged by how it looks or feels. You do that work yourself. Codex may still handle non-visual pieces of a frontend codebase: build config, API clients, data and state logic, and tests of pure logic. Brief those with an explicit "do not change markup, styles, or copy".
 2. **Codex has no human taste, so you supply it.** Write the brief so specifically that Codex can produce the best result in a single pass. Decide every judgment call yourself and write it down: names, interfaces and signatures, file layout, error messages and wording, edge-case behavior, what to leave out. Then nothing is left to Codex's own taste. A vague brief followed by fix-up rounds is the failure mode to avoid.
+
+## Picking the model
+
+| Work | Model |
+|---|---|
+| Trivial, mechanical work: changing numbers, constants or config values, renames, surveying the file or directory structure, finding where something is defined, quick lookups and summaries of code | **Luna**: `--model luna --effort low` (use `none` for pure lookups) |
+| Everything else: implementation, bug fixes, refactors, tests, debugging, research, review | **Sol** (the default, so leave `--model` unset) |
+
+When you're unsure, use Sol. Luna is fast and cheap, but it's for narrow jobs whose answer can be checked at a glance.
 
 ## Launcher
 
@@ -42,8 +51,8 @@ Flags:
 | `--worktree <name>` | Create/reuse an isolated worktree on branch `codex/<name>` (from HEAD, or `--base <ref>`) and run there; implies `--write` |
 | `--thread <job-id>` | Continue that job's Codex thread (same cwd/worktree/sandbox) with a follow-up prompt |
 | `--resume-last` | Continue the latest finished task thread of this session |
-| `--model <id>` | Default is always `gpt-6.1-sol` (Sol; needs codex-cli ≥ 0.159 — if it 400s with "not supported when using Codex with a ChatGPT account", update the CLI: `npm install -g @openai/codex@latest`). Never pass this unless the user explicitly names another model |
-| `--effort <low/medium/high/xhigh/max>` | Reasoning effort; unset = `medium`. Sol rejects `none`/`minimal` (mapped to `low`). Pick by the table in `sol-prompting` |
+| `--model luna` | GPT-6 Luna for trivial work (see "Picking the model"). Without the flag: `gpt-6.1-sol` (needs codex-cli ≥ 0.159; if it 400s with "not supported when using Codex with a ChatGPT account", run `npm install -g @openai/codex@latest`). Use no other model unless the user names one |
+| `--effort <none/low/medium/high/xhigh/max>` | Reasoning effort; unset = `medium`. Sol rejects `none`/`minimal` (mapped to `low`), Luna accepts `none`. Pick by the table in `sol-prompting` |
 | `--output-schema <file.json>` | Force Codex's final message to match a JSON schema (it lands in `rawOutput` as JSON text) |
 
 ## Parallel workers
@@ -83,7 +92,5 @@ Before writing any prompt file, load the `codex-worker:sol-prompting` skill and 
 ## When not to use it
 
 - Anything UI/frontend or taste-driven (rule 1 above).
-
-- Quick edits or lookups you can finish in a few tool calls.
-- Work needing this conversation's full context that would take longer to brief than to do.
+- Work that needs this conversation's context and can't be put into a brief.
 - Anything the user asked *you* to do personally, or explicitly not to delegate.

@@ -73,7 +73,10 @@ const NO_NONE_EFFORT_MODELS = /^gpt-6(\.\d+)?-(sol|astra)$/;
 // codex-worker: workers always run on Sol unless a run names another model.
 // CODEX_WORKER_MODEL overrides the default without editing the plugin.
 const DEFAULT_WORKER_MODEL = process.env.CODEX_WORKER_MODEL?.trim() || "gpt-6.1-sol";
-const MODEL_ALIASES = new Map([["sol", DEFAULT_WORKER_MODEL]]);
+const MODEL_ALIASES = new Map([
+  ["sol", DEFAULT_WORKER_MODEL],
+  ["luna", process.env.CODEX_WORKER_LUNA_MODEL?.trim() || "gpt-6-luna"]
+]);
 const SANDBOX_ALIASES = new Map([
   ["read-only", "read-only"],
   ["ro", "read-only"],
@@ -92,7 +95,7 @@ function printUsage() {
       "  node scripts/codex-companion.mjs setup [--enable-review-gate|--disable-review-gate] [--json]",
       "  node scripts/codex-companion.mjs review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>]",
       "  node scripts/codex-companion.mjs adversarial-review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>] [focus text]",
-      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--prompt-file <file>] [--json] [prompt]",
+      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol|luna>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--prompt-file <file>] [--json] [prompt]",
       "  node scripts/codex-companion.mjs worktrees [--json]",
       "  node scripts/codex-companion.mjs worktree-remove <name> [--delete-branch] [--force] [--json]",
       "  node scripts/codex-companion.mjs status [job-id] [--all] [--json]",
