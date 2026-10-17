@@ -98,6 +98,12 @@ node ~/.codex-worker/cw.mjs bridge start
 - **`'gpt-6.1-sol' model is not supported when using Codex with a ChatGPT account`**: Codex CLI가 오래된 버전이에요. `npm install -g @openai/codex@latest`로 업데이트하세요 ([openai/codex#49396](https://github.com/openai/codex/issues/49396)). 그래도 안 되면 `CODEX_WORKER_MODEL=gpt-6-sol`로 바꿔 보세요.
 - **`--worktree`에서 "no commits yet" 오류**: 저장소에 커밋이 하나 이상 있어야 worktree를 만들 수 있어요.
 
+## 테스트
+
+저장소 루트에서 `node --test`로 브리지 회귀 테스트를 실행합니다. 별도 패키지 설치는 필요하지 않습니다.
+Windows의 Python 후보 전환은 실행 결과를 모의해 검사합니다. CLI 테스트는 실제 Python 3.7 이상으로
+전용 임시 포트에서 시작·상태 조회·시작 실패를 검사하며, Python이나 localhost 소켓을 사용할 수 없으면 해당 검사를 건너뜁니다.
+
 ## 라이선스
 
 Apache License 2.0. 원본 저작권은 OpenAI에 있습니다. 바뀐 내용은 [`codex-worker/NOTICE`](codex-worker/NOTICE)와 [`codex-worker/CHANGELOG.md`](codex-worker/CHANGELOG.md)에 적혀 있어요.
