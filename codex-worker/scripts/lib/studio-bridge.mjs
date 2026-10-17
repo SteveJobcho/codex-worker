@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const BUNDLED_DIR = path.resolve(fileURLToPath(new URL("../../studio_bridge", import.meta.url)));
+const PYTHON_PROBE = 'import sys; print("codex-worker-python%d" % sys.version_info[0])';
 
 function sha256(file) {
   try {
@@ -51,21 +52,43 @@ function pythonCandidates() {
 
 export function runBridgeServer(cwd, args) {
   const bridge = resolveBridge(cwd);
+  const failures = [];
+  let allMissing = true;
   for (const [cmd, pre] of pythonCandidates()) {
+    // Probe without running server.py: a failed launcher can be skipped, but a
+    // bridge error (including status's normal exit 3) must never start a retry.
+    const probe = spawnSync(cmd, [...pre, "-c", PYTHON_PROBE], {
+      cwd,
+      encoding: "utf8",
+      windowsHide: true,
+      timeout: 5000
+    });
+    if (probe.error || probe.signal || probe.status !== 0 || (probe.stdout ?? "").trim() !== "codex-worker-python3") {
+      if (probe.error?.code !== "ENOENT") allMissing = false;
+      const detail = probe.error?.message ?? [
+        (probe.stderr ?? "").trim(),
+        (probe.stdout ?? "").trim(),
+        probe.signal ? `signal ${probe.signal}` : `exit ${probe.status}`
+      ].filter(Boolean).join("; ");
+      failures.push(`${[cmd, ...pre].join(" ")}: ${detail}`);
+      continue;
+    }
     const result = spawnSync(cmd, [...pre, bridge.serverPy, ...args], {
       cwd,
       encoding: "utf8",
       windowsHide: true,
       timeout: 30000
     });
-    if (result.error && result.error.code === "ENOENT") continue;
     return {
       bridge,
       python: cmd,
       exitCode: result.status,
       stdout: (result.stdout ?? "").trim(),
-      stderr: (result.stderr ?? "").trim()
+      stderr: [(result.stderr ?? "").trim(), result.error?.message].filter(Boolean).join("\n")
     };
   }
-  throw new Error("Python 3 is required for the Studio bridge, but no python/py/python3 was found on PATH.");
+  const reason = allMissing
+    ? "no python/py/python3 was found on PATH."
+    : `no working python/py/python3 was found on PATH.\n${failures.join("\n")}`;
+  throw new Error(`Python 3 is required for the Studio bridge, but ${reason}`);
 }
