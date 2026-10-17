@@ -1,5 +1,9 @@
 # Changelog
 
+## codex-worker 1.10.1 (fork)
+
+- Image analysis guidance: paths in the brief are the default, since Codex measures files with scripts. `--image` is only for when Codex must look at a few images by eye.
+
 ## codex-worker 1.10.0 (fork)
 
 - `task --image <img,...>` attaches images to the turn, so Codex sees them directly.

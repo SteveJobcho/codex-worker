@@ -92,7 +92,7 @@ Design work stays with you. Codex is still useful for **looking at images**, in 
 - **There are many images.** Examples: surveying or tagging a folder of assets, checking dozens of exported icons for size, transparency or naming, finding duplicates or near-duplicates, or batch-describing screenshots. This work would otherwise flood your context with images. Split large sets across parallel workers.
 
 How:
-- Attach a few images directly with `--image a.png,b.png`, so Codex sees them in its prompt. For folders, point Codex at the paths, and it opens the files itself or measures them with scripts.
+- By default, just put the image paths or folders in the brief. Codex opens the files itself and measures them with scripts, which is all exact analysis needs. Use `--image a.png,b.png` only when Codex has to *look at* a few images itself, for example to describe them or read on-screen text by eye.
 - Ask for **facts with evidence**: numbers, coordinates, hex colors, file names, pass or fail per item, and how each was measured. Don't ask for opinions on look and feel.
 - Then **you** make the design call from those facts and spot-check a few images yourself.
 - Luna is enough for mechanical checks such as size, alpha or naming. Use Sol when the analysis needs reasoning.
