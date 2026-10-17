@@ -54,6 +54,7 @@ import { resolveWorkspaceRoot } from "./lib/workspace.mjs";
 import { ensureWorktree, listWorktrees, removeWorktree } from "./lib/worktree.mjs";
 import { buildMcpConfig, listClaudeMcpServers } from "./lib/claude-mcp.mjs";
 import { resolveBridge, runBridgeServer } from "./lib/studio-bridge.mjs";
+import { generateImage } from "./lib/codex-images.mjs";
 import {
   renderNativeReviewResult,
   renderReviewResult,
@@ -100,6 +101,7 @@ function printUsage() {
       "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol|luna>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--mcp <claude-server,...>] [--add-dir <dir,...>] [--prompt-file <file>] [--json] [prompt]",
       "  node scripts/codex-companion.mjs mcp-list [--json]",
       "  node scripts/codex-companion.mjs bridge [start|status|path] [--json]",
+      "  node scripts/codex-companion.mjs image [--out <file.png>] [--ref <img,...>] [--size auto|1024x1024|1536x1024|1024x1536] [--quality auto|low|medium|high] [--background auto|transparent|opaque] [--force] [--json] <prompt>",
       "  node scripts/codex-companion.mjs worktrees [--json]",
       "  node scripts/codex-companion.mjs worktree-remove <name> [--delete-branch] [--force] [--json]",
       "  node scripts/codex-companion.mjs status [job-id] [--all] [--json]",
@@ -1137,6 +1139,81 @@ async function handleCancel(argv) {
   outputCommandResult(payload, renderCancelReport(nextJob), options.json);
 }
 
+function defaultImagePath(cwd) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
+  return path.join(cwd, `image-${stamp}.png`);
+}
+
+// TLS-inspecting antivirus or corporate proxies (Kaspersky, Zscaler, ...) sign
+// HTTPS with a root that only the OS trusts. Node's fetch ignores the OS store
+// unless started with --use-system-ca, so re-run this command once with it.
+function rerunWithSystemCa(subcommand, argv) {
+  if (process.execArgv.includes("--use-system-ca") || process.env.CODEX_WORKER_NO_SYSTEM_CA === "1") return null;
+  if (!process.allowedNodeEnvironmentFlags?.has("--use-system-ca")) return null;
+  const script = path.join(ROOT_DIR, "scripts", "codex-companion.mjs");
+  const child = spawn(process.execPath, ["--use-system-ca", script, subcommand, ...argv], {
+    stdio: "inherit",
+    windowsHide: true
+  });
+  return new Promise((resolve) => {
+    child.on("exit", (code) => {
+      process.exitCode = code ?? 1;
+      resolve(true);
+    });
+  });
+}
+
+// image: one direct call to Codex's image backend; no Codex turn, no worker brief.
+async function handleImage(argv) {
+  if (await rerunWithSystemCa("image", argv)) return;
+  const { options, positionals } = parseCommandInput(argv, {
+    valueOptions: ["cwd", "out", "ref", "size", "quality", "background", "prompt-file"],
+    booleanOptions: ["json", "force"]
+  });
+  const cwd = resolveCommandCwd(options);
+  const prompt = options["prompt-file"]
+    ? fs.readFileSync(path.resolve(cwd, options["prompt-file"]), "utf8")
+    : positionals.join(" ") || readStdinIfPiped();
+  const refs = options.ref
+    ? String(options.ref)
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map((p) => path.resolve(cwd, p))
+    : [];
+  let out = path.resolve(cwd, options.out ?? defaultImagePath(cwd));
+  if (!path.extname(out)) out += ".png";
+  if (fs.existsSync(out) && !options.force) {
+    throw new Error(`${out} already exists. Pass --force to replace it, or choose another --out.`);
+  }
+
+  const started = Date.now();
+  const result = await generateImage({
+    prompt,
+    refs,
+    size: options.size,
+    quality: options.quality,
+    background: options.background,
+    cwd
+  });
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  const tmp = `${out}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, result.buffer);
+  fs.renameSync(tmp, out);
+
+  const payload = {
+    path: out,
+    bytes: result.buffer.length,
+    mode: result.mode,
+    size: result.size,
+    quality: result.quality,
+    revisedPrompt: result.revisedPrompt,
+    refs,
+    seconds: Math.round((Date.now() - started) / 100) / 10
+  };
+  outputCommandResult(payload, `Saved ${out} (${result.mode}, ${payload.bytes} bytes, ${payload.seconds}s)\n`, options.json);
+}
+
 function handleBridge(argv) {
   const { options, positionals } = parseCommandInput(argv, {
     valueOptions: ["cwd"],
@@ -1215,6 +1292,9 @@ async function main() {
   }
 
   switch (subcommand) {
+    case "image":
+      await handleImage(argv);
+      break;
     case "bridge":
       handleBridge(argv);
       break;

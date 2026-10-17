@@ -1,5 +1,10 @@
 # Changelog
 
+## codex-worker 1.9.0 (fork)
+
+- New `image` command and `/codex-worker:image`. It generates or edits images (`--ref`, up to 5) with `gpt-image-2` through Codex's image backend, using the ChatGPT login in `auth.json`. No Codex turn and no `OPENAI_API_KEY` are involved. Tokens are refreshed by Codex itself (`account/read` with `refreshToken`), files are written atomically, and existing files are never overwritten without `--force`. This follows the approach of jdmnk/codex-imagegen-cli and crazygit/pi-codex-image-gen.
+- On machines with TLS-inspecting antivirus or proxies, the command re-runs itself with `--use-system-ca` so Node trusts the OS certificate store.
+
 ## codex-worker 1.8.0 (fork)
 
 - Write-capable jobs now pre-approve the tools of servers lent with `--mcp` (`default_tools_approval_mode = "approve"` for that thread only). Before this, gated tools such as Roblox Studio's `execute_luau` were always rejected, because workers run with approval policy "never". Read-only jobs keep the tools gated.

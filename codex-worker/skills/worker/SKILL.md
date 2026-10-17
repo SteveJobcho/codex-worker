@@ -84,6 +84,20 @@ Studio work can be delegated too. Studio is live state with no git, so you set u
 
 A few small edits can go straight through the MCP's `multi_edit` without the bridge. Tell Codex to re-read the script just before writing. If the bridge can't run (no Python, or the port is taken by an incompatible version), fall back to `multi_edit` with small, exact edits and say so.
 
+## Images: no worker needed
+
+To generate or edit an image, **don't** start a Codex job. Call Codex's image model (`gpt-image-2`) directly with the ChatGPT login. That takes one request, about 20-40 seconds, with no brief and no worker turn:
+
+```bash
+node "$HOME/.codex-worker/cw.mjs" image --json --out assets/icon.png --size 1024x1024 --quality high "<prompt>"
+node "$HOME/.codex-worker/cw.mjs" image --json --ref in.png --out out.png "<what to change>"   # edit from 1-5 reference images
+```
+
+- Options: `--size auto|1024x1024|1536x1024|1024x1536`, `--quality auto|low|medium|high`, `--background auto|transparent|opaque`, `--force` to overwrite. Existing files are never replaced without `--force`.
+- Images are taste work, so **you** write the prompt: subject, composition, style, palette, any exact text, and what to leave out. Use the user's words as-is when they gave a prompt.
+- Always Read the saved file to check it before reporting. Re-generate with a corrected prompt if it misses.
+- This uses an unofficial endpoint, so it may change without notice. If the call fails, report the error. Don't fall back to a Codex worker unless the user asks.
+
 ## Picking the model
 
 | Work | Model |

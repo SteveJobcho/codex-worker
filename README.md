@@ -82,6 +82,20 @@ URL로 접속하면서 로그인이 필요한 MCP와 Claude 앱에 내장된 도
 node ~/.codex-worker/cw.mjs bridge start
 ```
 
+## 이미지 생성
+
+Codex 워커를 돌리지 않고 ChatGPT 로그인만으로 바로 이미지를 만들어요(`gpt-image-2`, API 키 필요 없음). 참고 이미지를 주면 편집도 됩니다.
+
+```bash
+node ~/.codex-worker/cw.mjs image --out fox.png --size 1024x1024 "A flat vector icon of a small orange fox"
+```
+
+```bash
+node ~/.codex-worker/cw.mjs image --ref fox.png --out fox-blue.png "Make the fox blue, keep everything else"
+```
+
+Claude Code에서는 `/codex-worker:image <프롬프트>`로도 쓸 수 있어요. 비공식 엔드포인트를 쓰기 때문에 예고 없이 바뀔 수 있습니다. 방식은 [jdmnk/codex-imagegen-cli](https://github.com/jdmnk/codex-imagegen-cli)와 [crazygit/pi-codex-image-gen](https://github.com/crazygit/pi-codex-image-gen)을 참고했어요.
+
 ## 설정 (환경 변수)
 
 | 변수 | 기본값 | 설명 |
