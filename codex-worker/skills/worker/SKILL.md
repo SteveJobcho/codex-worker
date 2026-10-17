@@ -54,6 +54,7 @@ node "$HOME/.codex-worker/cw.mjs" task --json --mcp Roblox_Studio --prompt-file 
 ```
 
 - `--mcp a,b` takes server names from Claude's config: the project `.mcp.json`, `~/.claude.json` (project and user entries), Claude Desktop's config, and other projects' entries as a fallback. It injects them into that Codex thread only, and `~/.codex/config.toml` is untouched. `--thread` follow-ups keep them.
+- Workers can't answer approval prompts, so any MCP tool that would ask for approval is rejected ("requires approval, but approval policy is never"). Write-capable jobs (`--write`, `--sandbox full`, `--worktree`) therefore pre-approve every tool of a lent server, such as Studio's `execute_luau`. Read-only jobs keep those tools gated, which makes read-only the safe choice for surveys. Codex's own servers from `~/.codex/config.toml` follow that file's settings, so lend the server with `--mcp` when Codex has to run gated tools.
 - Only stdio servers can be lent. Remote or OAuth servers (HTTP connectors) and Claude's built-in app tools (browser, computer use, session tools) can't be.
 - Tell Codex in the brief which MCP tools to use and whether it may change anything through them. Studio and Blender edits are live and not covered by git, so default to read-only unless the user asked for changes.
 

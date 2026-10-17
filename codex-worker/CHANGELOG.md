@@ -1,5 +1,9 @@
 # Changelog
 
+## codex-worker 1.8.0 (fork)
+
+- Write-capable jobs now pre-approve the tools of servers lent with `--mcp` (`default_tools_approval_mode = "approve"` for that thread only). Before this, gated tools such as Roblox Studio's `execute_luau` were always rejected, because workers run with approval policy "never". Read-only jobs keep the tools gated.
+
 ## codex-worker 1.7.0 (fork)
 
 - The Roblox Studio bridge (`studio_bridge/server.py`, `bridge.lua`) ships with the plugin, so Studio script edits through the bridge work in any project. A project's own `tools/studio_bridge` still wins. The copies are byte-identical (`SHA256SUMS.txt`), so they share one server on port 47600.

@@ -500,7 +500,10 @@ async function executeTaskRun(request) {
     throw new Error("Provide a prompt, a prompt file, piped stdin, or use --resume-last.");
   }
 
-  const mcp = request.mcp?.length ? buildMcpConfig(request.mcpLookupCwd ?? request.cwd, request.mcp) : null;
+  const effectiveSandbox = request.sandbox ?? (request.write ? "workspace-write" : "read-only");
+  const mcp = request.mcp?.length
+    ? buildMcpConfig(request.mcpLookupCwd ?? request.cwd, request.mcp, { approve: effectiveSandbox !== "read-only" })
+    : null;
   if (mcp?.lent.length) {
     request.onProgress?.(`Lending Claude MCP servers: ${mcp.lent.map((s) => s.codexName).join(", ")}.`);
   }

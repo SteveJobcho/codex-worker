@@ -103,7 +103,7 @@ function codexKey(name) {
  * Builds the per-thread config override for the requested server names.
  * @returns {{ config: Record<string, unknown>, lent: {name: string, codexName: string, source: string}[] }}
  */
-export function buildMcpConfig(cwd, names) {
+export function buildMcpConfig(cwd, names, { approve = false } = {}) {
   const config = {};
   const lent = [];
   for (const raw of names) {
@@ -128,7 +128,12 @@ export function buildMcpConfig(cwd, names) {
     if (found.def.cwd) config[`${prefix}.cwd`] = found.def.cwd;
     // A same-named server may exist but be disabled in ~/.codex/config.toml.
     config[`${prefix}.enabled`] = true;
-    lent.push({ name: found.name, codexName: key, source: found.source });
+    // Workers run with approval policy "never", so any tool that would prompt
+    // (e.g. Studio's execute_luau) is rejected outright. Write-capable jobs
+    // pre-approve the lent server's tools (user-approved design); read-only
+    // jobs keep them gated.
+    if (approve) config[`${prefix}.default_tools_approval_mode`] = "approve";
+    lent.push({ name: found.name, codexName: key, source: found.source, toolsApproved: approve });
   }
   return { config, lent };
 }
