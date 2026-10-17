@@ -79,8 +79,11 @@ function buildResumeParams(threadId, cwd, options = {}) {
 }
 
 /** @returns {UserInput[]} */
-function buildTurnInput(prompt) {
-  return [{ type: "text", text: prompt, text_elements: [] }];
+function buildTurnInput(prompt, images = []) {
+  return [
+    { type: "text", text: prompt, text_elements: [] },
+    ...images.map((imagePath) => ({ type: "localImage", path: imagePath }))
+  ];
 }
 
 function shorten(text, limit = 72) {
@@ -1010,7 +1013,7 @@ export async function runAppServerTurn(cwd, options = {}) {
       () =>
         client.request("turn/start", {
           threadId,
-          input: buildTurnInput(prompt),
+          input: buildTurnInput(prompt, options.images ?? []),
           model: options.model ?? null,
           effort: options.effort ?? null,
           outputSchema: options.outputSchema ?? null

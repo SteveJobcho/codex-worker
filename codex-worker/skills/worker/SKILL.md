@@ -1,6 +1,6 @@
 ---
 name: worker
-description: MUST be loaded before you start any non-UI coding or code-investigation task, including surveys, new scripts, functions with tests, edits, test runs, debugging, refactors and research, and before your first edit, search or exploration for it. Loading it is not optional and not a judgment call. After loading, you MUST make and state an explicit delegate-or-not decision for the task and each separable part, handing parts to a Codex worker (OpenAI GPT-6.1 Sol, or GPT-6 Luna for trivial work) that you drive from Bash. Codex can also use MCP tools such as Roblox Studio and Blender. UI/frontend is never delegated. Also load it when the user says "codex", "코덱스", "codex한테 시켜" or "워커".
+description: MUST be loaded before you start any non-UI coding or code-investigation task, including surveys, new scripts, functions with tests, edits, test runs, debugging, refactors and research, and before your first edit, search or exploration for it. Loading it is not optional and not a judgment call. After loading, you MUST make and state an explicit delegate-or-not decision for the task and each separable part, handing parts to a Codex worker (OpenAI GPT-6.1 Sol, or GPT-6 Luna for trivial work) that you drive from Bash. Codex can also use MCP tools such as Roblox Studio and Blender. UI/frontend and design decisions are never delegated, but exact image analysis and large image batches can be. Also load it when the user says "codex", "코덱스", "codex한테 시켜" or "워커".
 ---
 
 # Codex worker
@@ -9,7 +9,7 @@ Codex is a separate coding agent (OpenAI). You call it straight from Bash — no
 
 ## Two standing rules
 
-1. **No UI or frontend work goes to Codex.** That covers pages, components, styling and CSS, layout, visual design, UX copy, animation, and design tokens, along with anything judged by how it looks or feels. You do that work yourself. Codex may still handle non-visual pieces of a frontend codebase: build config, API clients, data and state logic, and tests of pure logic. Brief those with an explicit "do not change markup, styles, or copy".
+1. **No UI or frontend work goes to Codex.** That covers pages, components, styling and CSS, layout, visual design, UX copy, animation, and design tokens, along with anything judged by how it looks or feels. You do that work yourself. Codex may still handle non-visual pieces of a frontend codebase: build config, API clients, data and state logic, and tests of pure logic. Brief those with an explicit "do not change markup, styles, or copy". One exception sits beside this rule: design *decisions* stay with you (Opus), but **image analysis** may go to Codex (see "Image analysis").
 2. **Codex has no human taste, so you supply it.** Write the brief so specifically that Codex can produce the best result in a single pass. Decide every judgment call yourself and write it down: names, interfaces and signatures, file layout, error messages and wording, edge-case behavior, what to leave out. Then nothing is left to Codex's own taste. A vague brief followed by fix-up rounds is the failure mode to avoid.
 
 ## Deciding to delegate (mandatory)
@@ -84,6 +84,19 @@ Studio work can be delegated too. Studio is live state with no git, so you set u
 
 A few small edits can go straight through the MCP's `multi_edit` without the bridge. Tell Codex to re-read the script just before writing. If the bridge can't run (no Python, or the port is taken by an incompatible version), fall back to `multi_edit` with small, exact edits and say so.
 
+## Image analysis: Codex helps, you decide
+
+Design work stays with you. Codex is still useful for **looking at images**, in two cases:
+
+- **The analysis has to be exact.** Examples: reading every value or label off a screenshot, a chart or a spec sheet, measuring sizes, positions or pixel colors, comparing two renders for differences, checking that a sprite sheet's frames line up, or verifying that the generated images match a checklist. Codex can open the files and *measure* with code (Pillow, numpy, OCR, diffs) instead of eyeballing.
+- **There are many images.** Examples: surveying or tagging a folder of assets, checking dozens of exported icons for size, transparency or naming, finding duplicates or near-duplicates, or batch-describing screenshots. This work would otherwise flood your context with images. Split large sets across parallel workers.
+
+How:
+- Attach a few images directly with `--image a.png,b.png`, so Codex sees them in its prompt. For folders, point Codex at the paths, and it opens the files itself or measures them with scripts.
+- Ask for **facts with evidence**: numbers, coordinates, hex colors, file names, pass or fail per item, and how each was measured. Don't ask for opinions on look and feel.
+- Then **you** make the design call from those facts and spot-check a few images yourself.
+- Luna is enough for mechanical checks such as size, alpha or naming. Use Sol when the analysis needs reasoning.
+
 ## Images: no worker needed
 
 To generate or edit an image, **don't** start a Codex job. Call Codex's image model (`gpt-image-2`) directly with the ChatGPT login. That takes one request, about 20-40 seconds, with no brief and no worker turn:
@@ -140,6 +153,7 @@ Flags:
 | `--model luna` | GPT-6 Luna for trivial work (see "Picking the model"). Without the flag: `gpt-6.1-sol` (needs codex-cli ≥ 0.159; if it 400s with "not supported when using Codex with a ChatGPT account", run `npm install -g @openai/codex@latest`). Use no other model unless the user names one |
 | `--effort <none/low/medium/high/xhigh/max>` | Reasoning effort; unset = `medium`. Sol rejects `none`/`minimal` (mapped to `low`), Luna accepts `none`. Pick by the table in `sol-prompting` |
 | `--mcp <name,...>` | Lend Claude's local MCP servers to this job only (see "Tools Codex can use") |
+| `--image <img,...>` | Attach images to this turn (PNG, JPEG, WebP, GIF) so Codex sees them directly; see "Image analysis" |
 | `--add-dir <dir,...>` | Extra folders Codex may write to in this job only, e.g. a Studio bridge root. Needs `--write`; `%VAR%` is expanded |
 | `--output-schema <file.json>` | Force Codex's final message to match a JSON schema (it lands in `rawOutput` as JSON text) |
 

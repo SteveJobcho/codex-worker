@@ -1,5 +1,10 @@
 # Changelog
 
+## codex-worker 1.10.0 (fork)
+
+- `task --image <img,...>` attaches images to the turn, so Codex sees them directly.
+- New "Image analysis" guidance: design decisions stay with Claude (Opus), but exact image analysis (measuring values, sizes and colors, diffing renders) and large image batches can go to Codex. Codex returns facts with evidence, and Claude makes the call.
+
 ## codex-worker 1.9.0 (fork)
 
 - New `image` command and `/codex-worker:image`. It generates or edits images (`--ref`, up to 5) with `gpt-image-2` through Codex's image backend, using the ChatGPT login in `auth.json`. No Codex turn and no `OPENAI_API_KEY` are involved. Tokens are refreshed by Codex itself (`account/read` with `refreshToken`), files are written atomically, and existing files are never overwritten without `--force`. This follows the approach of jdmnk/codex-imagegen-cli and crazygit/pi-codex-image-gen.

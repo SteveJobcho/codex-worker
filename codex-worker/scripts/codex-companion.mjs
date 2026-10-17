@@ -98,7 +98,7 @@ function printUsage() {
       "  node scripts/codex-companion.mjs setup [--enable-review-gate|--disable-review-gate] [--json]",
       "  node scripts/codex-companion.mjs review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>]",
       "  node scripts/codex-companion.mjs adversarial-review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>] [focus text]",
-      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol|luna>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--mcp <claude-server,...>] [--add-dir <dir,...>] [--prompt-file <file>] [--json] [prompt]",
+      "  node scripts/codex-companion.mjs task [--background] [--write|--sandbox <read-only|write|full>] [--worktree <name> [--base <ref>]] [--resume-last|--thread <job-id|thread-id>|--fresh] [--model <model|sol|luna>] [--effort <none|minimal|low|medium|high|xhigh>] [--output-schema <file>] [--mcp <claude-server,...>] [--add-dir <dir,...>] [--image <img,...>] [--prompt-file <file>] [--json] [prompt]",
       "  node scripts/codex-companion.mjs mcp-list [--json]",
       "  node scripts/codex-companion.mjs bridge [start|status|path] [--json]",
       "  node scripts/codex-companion.mjs image [--out <file.png>] [--ref <img,...>] [--size auto|1024x1024|1536x1024|1024x1536] [--quality auto|low|medium|high] [--background auto|transparent|opaque] [--force] [--json] <prompt>",
@@ -524,6 +524,7 @@ async function executeTaskRun(request) {
     effort: request.effort,
     sandbox: request.sandbox ?? (request.write ? "workspace-write" : "read-only"),
     outputSchema: request.outputSchema ?? null,
+    images: request.images ?? [],
     onProgress: request.onProgress,
     persistThread: true,
     threadName: resumeThreadId ? null : buildPersistentTaskThreadName(request.prompt || DEFAULT_CONTINUE_PROMPT)
@@ -645,7 +646,7 @@ function buildTaskJob(workspaceRoot, taskMetadata, write) {
   });
 }
 
-function buildTaskRequest({ cwd, model, effort, prompt, write, resumeLast, jobId, sandbox, threadId, outputSchema, worktree, mcp, mcpLookupCwd, addDirs }) {
+function buildTaskRequest({ cwd, model, effort, prompt, write, resumeLast, jobId, sandbox, threadId, outputSchema, worktree, mcp, mcpLookupCwd, addDirs, images }) {
   return {
     cwd,
     model,
@@ -660,7 +661,8 @@ function buildTaskRequest({ cwd, model, effort, prompt, write, resumeLast, jobId
     worktree,
     mcp,
     mcpLookupCwd,
-    addDirs
+    addDirs,
+    images
   };
 }
 
@@ -824,7 +826,7 @@ async function handleReview(argv) {
 
 async function handleTask(argv) {
   const { options, positionals } = parseCommandInput(argv, {
-    valueOptions: ["model", "effort", "cwd", "prompt-file", "sandbox", "worktree", "base", "thread", "output-schema", "mcp", "add-dir"],
+    valueOptions: ["model", "effort", "cwd", "prompt-file", "sandbox", "worktree", "base", "thread", "output-schema", "mcp", "add-dir", "image"],
     booleanOptions: ["json", "write", "resume-last", "resume", "fresh", "background"],
     aliasMap: {
       m: "model"
@@ -897,6 +899,18 @@ async function handleTask(argv) {
   for (const dir of addDirs) {
     fs.mkdirSync(dir, { recursive: true });
   }
+  // --image a.png,b.jpg attaches images to this turn so Codex sees them directly.
+  const images = options.image
+    ? String(options.image)
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map((p) => path.resolve(invocationCwd, p))
+    : [];
+  for (const imagePath of images) {
+    if (!fs.existsSync(imagePath)) throw new Error(`--image file not found: ${imagePath}`);
+    if (!/\.(png|jpe?g|webp|gif)$/i.test(imagePath)) throw new Error(`--image must be PNG, JPEG, WebP or GIF: ${imagePath}`);
+  }
   const taskMetadata = buildTaskRunMetadata({
     prompt,
     resumeLast: resumeLast || Boolean(threadId)
@@ -921,7 +935,8 @@ async function handleTask(argv) {
       worktree,
       mcp,
       mcpLookupCwd,
-      addDirs
+      addDirs,
+      images
     });
     const { payload } = enqueueBackgroundTask(cwd, job, request);
     outputCommandResult(payload, renderQueuedTaskLaunch(payload), options.json);
@@ -947,6 +962,7 @@ async function handleTask(argv) {
         mcp,
         mcpLookupCwd,
         addDirs,
+        images,
         onProgress: progress
       }),
     { json: options.json }
